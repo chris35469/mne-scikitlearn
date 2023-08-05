@@ -2,3 +2,4 @@
 *.csv
 /data
 /data_debug
+/data_removed
