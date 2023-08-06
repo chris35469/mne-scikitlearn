@@ -7,34 +7,36 @@ from torchvision import transforms
 from sklearn import preprocessing
 
 class CSVDatasetGroupSplit():
-    def __init__(self, file_path, test_size=.20, n_splits=1, random_state=7):
-        xy = np.loadtxt(file_path, delimiter=',', dtype=np.float32, skiprows=1)
+    def __init__(self, x, y, group, test_size=.20, n_splits=1, random_state=7):
+        #xy = np.loadtxt(file_path, delimiter=',', dtype=np.float32, skiprows=1)
         #self.x_data = torch.from_numpy(xy[:, :-2]) # size [n_samples, n_features]
         #self.y_data = torch.from_numpy(xy[:, [-2]])
-        #xy[:, :-2] = preprocessing.MinMaxScaler().fit_transform(xy[:, :-2])
-        self.groups = torch.from_numpy(xy[:, [-1]]) 
+        #xy[:, :-2] = preprocessing.MinMaxScaler().fit_transform(xy[:, :-2])'
+        _x = x.to_numpy()
+        _y = y.to_numpy()
+        _group = group.to_numpy()
+        #self.groups = torch.from_numpy(group) 
         splitter = GroupShuffleSplit(test_size=test_size, n_splits=n_splits, random_state=random_state)
-        split = splitter.split(xy, groups=self.groups)
+        split = splitter.split(_x, groups=_group)
         train_inds, test_inds = next(split)
-        self.split = CSVDataset(xy[train_inds]), CSVDataset(xy[test_inds])
+        print("train, test", _x[train_inds].shape, _x[test_inds].shape)
+        self.split = CSVDataset(_x[train_inds], _y[train_inds]), CSVDataset(_x[test_inds], _y[test_inds])
 
     def getSplit(self):
         return self.split
 
 class CSVDataset(Dataset):
-    def __init__(self, xy):
+    def __init__(self, x, y):
         # Initialize data, download, etc.
         # read with numpy or pandas
         #xy = np.loadtxt(file_path, delimiter=',', dtype=np.float32, skiprows=1)
 
         # Number of samples
-        self.n_samples = xy.shape[0]
+        self.n_samples = x.shape[0]
 
         # here the first column is the class label, the rest are the features
-        self.x_data = torch.from_numpy(xy[:, :-2]) # size [n_samples, n_features]
-        self.y_data = torch.from_numpy(xy[:, [-2]]) # size [n_samples, 1]
-        self.group_data = torch.from_numpy(xy[:, [-1]]) 
-        #print("group", self.group_data)
+        self.x_data = torch.from_numpy(x) # size [n_samples, n_features]
+        self.y_data = torch.from_numpy(y) # size [n_samples, 1]
 
     # support indexing such that dataset[i] can be used to get i-th sample
     def __getitem__(self, index):
