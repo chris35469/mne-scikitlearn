@@ -5,6 +5,7 @@ import torch
 import pandas as pd
 from torchvision import transforms
 from sklearn import preprocessing
+from glob import glob
 
 class CSVDatasetGroupSplit():
     def __init__(self, x, y, group, test_size=.20, n_splits=1, random_state=7):
@@ -24,6 +25,7 @@ class CSVDatasetGroupSplit():
 
     def getSplit(self):
         return self.split
+
 
 class CSVDataset(Dataset):
     def __init__(self, x, y):
@@ -46,68 +48,6 @@ class CSVDataset(Dataset):
     def __len__(self):
         return self.n_samples
     
-
-
-    '''
-    for i in range(10):    
-    train_inds, test_inds = next(split)
-    unique, counts = np.unique(self.groups[train_inds], return_counts=True)
-
-    _o = dict(zip(unique, counts))
-    print("train: ", _o)
-
-    unique, counts = np.unique(self.groups[test_inds], return_counts=True)
-    _o = dict(zip(unique, counts))
-    print("test: ", _o)
-                        
-    '''
-
-
-    '''
-    splitter = GroupShuffleSplit(test_size=test_size, n_splits=n_splits, random_state=random_state)
-    split = splitter.split(df, groups=df['group'])
-    train_inds, test_inds = next(split)
-    train = df.iloc[train_inds]
-    test = df.iloc[test_inds]
-    print(train[:,:])
-    '''
-
-
-    #print("train ", len(train[(train['group'] == _group_id)]))
-    #print("test ",len(test[(test['group'] == _group_id)]))
-    #print(test['group'])
-    
-
-    
-    '''
-    xy = np.loadtxt(file_path, delimiter=',', dtype=np.float32, skiprows=1)
-    self.x_data = torch.from_numpy(xy[:, :-2]) # size [n_samples, n_features]
-    self.y_data = torch.from_numpy(xy[:, [-2]]) # size [n_samples, 1]
-    self.group_data = torch.from_numpy(xy[:, [-1]])
-    print(xy.shape)
-    gkf = GroupKFold(n_splits=2)
-
-    for train_index, test_index in gkf.split(self.x_data, self.y_data, groups=self.group_data):
-        print(self.group_data[train_index].shape, self.group_data[test_index].shape)
-        unique, counts = np.unique(self.group_data[train_index], return_counts=True)
-
-        _o = dict(zip(unique, counts))
-        print("train: ", _o)
-
-        unique, counts = np.unique(self.group_data[test_index], return_counts=True)
-        _o = dict(zip(unique, counts))
-        print("test: ", _o)
-    '''
-
-
-    ''' 
-    df = pd.read_csv(file_path) 
-    #print("df ", df.shape)
-    _group_id = 10
-    _g = len(df[(df['group'] == _group_id)]['group'])
-
-    print(_g)
-    g_k_f =  GroupKFold(n_splits=2)
-
-    for i, (train_index, test_index) in enumerate(g_k_f.split(X, y, groups)):
-    '''
+# Returns array of files with 'file_type' from 'file_path'
+def load_files(file_path, file_type):
+    return sorted(glob(f'{file_path}*{file_type}'))
