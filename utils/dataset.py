@@ -7,6 +7,17 @@ from torchvision import transforms
 from sklearn import preprocessing
 from glob import glob
 
+class NumpyDatasetGroupSplit():
+    def __init__(self, x, y, group, test_size=.20, n_splits=1, random_state=7):
+        splitter = GroupShuffleSplit(test_size=test_size, n_splits=n_splits, random_state=random_state)
+        split = splitter.split(x, groups=group)
+        train_inds, test_inds = next(split)
+        print("x, y train: ", x[train_inds].shape, y[train_inds].shape)
+        self.split = CSVDataset(x[train_inds], y[train_inds]), CSVDataset(x[test_inds], y[test_inds])
+    
+    def getSplit(self):
+        return self.split
+        
 class CSVDatasetGroupSplit():
     def __init__(self, x, y, group, test_size=.20, n_splits=1, random_state=7):
         #xy = np.loadtxt(file_path, delimiter=',', dtype=np.float32, skiprows=1)
