@@ -13,6 +13,7 @@ class NumpyDatasetGroupSplit():
         split = splitter.split(x, groups=group)
         train_inds, test_inds = next(split)
         print("x, y train: ", x[train_inds].shape, y[train_inds].shape)
+        print("x, y test: ", x[test_inds].shape, y[test_inds].shape)
         self.split = CSVDataset(x[train_inds], y[train_inds]), CSVDataset(x[test_inds], y[test_inds])
     
     def getSplit(self):

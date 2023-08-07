@@ -6,16 +6,17 @@ import numpy as np
 mne.set_log_level("critical")
 
 class Subject():
-    def __init__(self, file_path, bad_channels=[], epoch_duration=1, epoch_overlap=0, l_freq=0.5, h_freq=40, muscle_thresh=5, plot_bads=False, drop_log=False, interpolate={}):
+    def __init__(self, file_path, bad_channels=[], epoch_duration=1, epoch_overlap=0, l_freq=0.5, h_freq=40, muscle_thresh=5, plot_bads=False, drop_log=False, interpolate={}, fmin=0, fmax=40):
         # Load raw data fronm file
         self.raw = mne.io.read_raw_eeglab(file_path, preload=True)
         self.file_name = file_path
         self.ch_names = self.raw.ch_names
         self.raw.set_eeg_reference()
         self.raw_shape = self.raw.get_data().shape
-        self.file_length_seconds = math.floor(self.raw_shape[1] / self.raw.info['sfreq'])
-        print("Raw Shape: ", self.raw_shape)
-        print("Raw Seconds: ", self.file_length_seconds)
+        self.file_length_seconds = math.floor(int(self.raw_shape[1]) / int(self.raw.info['sfreq']))
+        self.sfreq =  int(self.raw.info['sfreq'])
+        self.fmin = fmin
+        self.fmax = fmax       
 
         # Mark bad data
         self.markMuscleArtifacts(muscle_thresh)
@@ -37,12 +38,21 @@ class Subject():
         # Create even length epochs
         self.epochs = mne.make_fixed_length_epochs(self.filtered, duration=epoch_duration, overlap=epoch_overlap, preload=True)
 
+        print("========")
+        print("Epochs (Before Drops): ", self.epochs)
+
         # Drop Bad Epochs
         self.dropBadEpochs(plotLog=drop_log)
 
         self.epochs.info['bads'] = [] # remove bads after handling interpolation and epoch drops
 
         self.psd = self.getPSD()
+
+        print("File: ", self.file_name)
+        print("Raw Freq: ",  self.sfreq )
+        print("Raw Shape: ", self.raw_shape)
+        print("Raw Seconds: ", self.file_length_seconds)
+        print("Epochs (After Drops): ", self.epochs)
 
         #self.main()
 
@@ -122,33 +132,40 @@ class Subject():
         powerArray = (10 * np.log10(powerArray))
         return powerArray
     
-    def getPSD(self, fmax=40):
-        self.psd = self.epochs.compute_psd(fmax=fmax)
+    def getPSD(self):
+        self.psd = self.epochs.compute_psd(method="welch", fmin=self.fmin, fmax=self.fmax, n_fft=self.sfreq)
         return self.psd
 
     def getChannelIndex(self, channel):
         return self.ch_names.index(channel)
 
-    def _getRegionAvg(self, epoch, regions):
+    def _getRegionAvg(self, epoch, regions, scale=True):
         feature_array = []
         for region in regions:
             region_epoch_psd = epoch[region()]
-            scaled_psd = self.scaleEEGPower(region_epoch_psd)
+            if(scale):
+                scaled_psd = self.scaleEEGPower(region_epoch_psd)
+            else:
+                scaled_psd = region_epoch_psd
             region_mean_psd = np.mean(scaled_psd, axis=0)
             feature_array.append(region_mean_psd)
         return feature_array
     
-    def getRegionFeatures(self, in_featues):
+    def getRegionFeatures(self, in_featues, scale=True):
         regions = [self.getFrontalChannels, self.getPosteriorChannels, self.getLeftChannels, self.getRightChannels]
-        out = [self._getRegionAvg(epoch, regions) for epoch in in_featues]
+        out = [self._getRegionAvg(epoch, regions, scale=scale) for epoch in in_featues]
+        return np.array(out)
+
+    def getExperimentalFeatures(self):
+        regions = [self.getFrontalChannels, self.getPosteriorChannels]
+        out = [self._getRegionAvg(epoch, regions, scale=True) for epoch in self.psd]
         return np.array(out)
 
     def getRegionPSDFeatures(self):
-        print(self.file_name)
         return self.getRegionFeatures(self.psd)
     
     def getRegionRawFeatures(self):
-        return self.getRegionFeatures(self.epochs)
+        return self.getRegionFeatures(self.epochs, scale=False)
 
     def getFileID(self, fileName):
         return fileName.split('Abby')[0].split('/')[-1] #specific to test set 

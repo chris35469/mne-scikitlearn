@@ -35,7 +35,7 @@ def nn_eval(nn_model, train, test, input_size, hidden_size, num_classes, device,
             loss.backward()
             optimizer.step()
             #print(i, (i+1) % print_point)
-            if (i+1) % print_point == 0:#
+            if (epoch+1) % print_point == 0:#
                 print (f'Epoch [{epoch+1}/{num_epochs}], Step [{i+1}/{n_iterations}], Loss: {loss.item():.4f}')
                 #print(f'Epoch: {epoch+1}/{num_epochs}, Step {i+1}/{n_iterations}| Inputs {inputs.shape} | Labels {labels.shape}')
 
@@ -44,7 +44,7 @@ def nn_eval(nn_model, train, test, input_size, hidden_size, num_classes, device,
 
     # Data loader Test
     loader = DataLoader(dataset=test,
-                            batch_size=20,
+                            batch_size=batch_size,
                             shuffle=True,
                             num_workers=1) 
     
