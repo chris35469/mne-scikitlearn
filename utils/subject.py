@@ -2,6 +2,8 @@ import mne
 from mne.preprocessing import annotate_muscle_zscore
 import math
 import numpy as np
+import EntropyHub as EH
+import matplotlib.pyplot as plt
 
 mne.set_log_level("critical")
 
@@ -126,7 +128,7 @@ class Subject():
         _channels = [self.getChannelIndex(i) for i in self.ch_names if self.checkRightNumbers(i)]
         return _channels
 
-        # https://mne.discourse.group/t/psd-multitaper-output-conversion-to-db-welch/4445
+    # https://mne.discourse.group/t/psd-multitaper-output-conversion-to-db-welch/4445
     def scaleEEGPower(self, powerArray):
         powerArray = powerArray * 1e6**2 
         powerArray = (10 * np.log10(powerArray))
@@ -161,6 +163,33 @@ class Subject():
         out = [self._getRegionAvg(epoch, regions, scale=True) for epoch in self.psd]
         return np.array(out)
 
+    def linePlot(self, series):
+        time = np.arange(series.shape[0])
+        plt.figure(figsize=(10, 4))
+        plt.plot(time, series, linewidth=0.5)
+        plt.xlabel("Time (s)")
+        plt.ylabel("Entropy")
+        plt.title("Entropy")
+        plt.grid(True)
+        plt.show()
+        plt.savefig('fig.png')
+
+
+    def getMSE(self):
+        #print(self.epochs.get_data().shape)
+        Mobj = EH.MSobject('FuzzEn', m = 5, tau = 2, Fx = 'sigmoid', r = (3, 1.2))
+        _x =  self.epochs.get_data()[0][0]
+        MSx = EH.MSEn(_x, Mobj, 20, Plotx=False)[0]
+        #print(MSx.shape)
+        #self.linePlot(MSx)
+        #print(MSx.shape, CI)
+        mse_array = []
+        for epoch in self.epochs:
+            channel_array = [EH.MSEn(channel, Mobj, 20, Plotx=False)[0] for channel in epoch]
+            mse_array.append(channel_array)
+        #print(np.array(mse_array).shape)
+        return np.array(mse_array)
+         
     def getRegionPSDFeatures(self):
         return self.getRegionFeatures(self.psd)
     
@@ -177,6 +206,7 @@ class Subject():
 
 #files = load_files('data_debug/td/', ".set")
 #subj1 = Subject(files[0], bad_channels=["CP3"], muscle_thresh=5)
+#subj1.getMSE()
 #epochs = subj1.getRegionFeatures(subj1.psd)
 #flatten_model = nn.Flatten(start_dim=0)
 #x = torch.from_numpy(epochs[0])
